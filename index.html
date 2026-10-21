@@ -149,6 +149,7 @@ footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--hair);
             <div class="field"><label for="name">Your first name</label><input id="name" maxlength="40" placeholder="Ashley"></div>
             <div class="field"><label for="buddy">Your buddy</label><input id="buddy" maxlength="40" placeholder="Jen"></div>
           </div>
+          <div class="field"><label for="shop">Your shop</label><input id="shop" maxlength="80" placeholder="PNW Automotive"></div>
           <div class="field"><label for="phone">Your cell (optional)</label>
             <input id="phone" type="tel" maxlength="20" placeholder="555-123-4567">
             <span class="hint">So your buddy can tap to text you. It only lives inside the link you send.</span></div>
@@ -168,6 +169,7 @@ footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--hair);
               <select id="len"><option value="7">1 week</option><option value="14">2 weeks</option><option value="30" selected>30 days</option><option value="90">90 days</option></select></div>
           </div>
           <div class="btns"><button class="btn main" type="submit">Save &amp; share with my buddy</button></div>
+          <p class="small muted">★ Your goal and the wins you log go on the ShopFix Tribe board for Coach Sam and Jazmin, so they can cheer you on. Your cell number stays private.</p>
           <p class="small muted" id="formMsg" role="status"></p>
         </form>
       </section>
@@ -255,8 +257,21 @@ footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--hair);
    - Your buddy opens the link and can (1) put repeating reminders on
      their calendar and (2) open their texts with a nudge already typed.
    - "My notes" are saved on YOUR phone/computer only (localStorage).
+   - Every goal and every win is ALSO sent to Coach Sam's Google Sheet
+     (SHEET_URL below; the script is sheet/Code.gs). Phone numbers are
+     never sent. Owners are told on the page.
    Keep it positive: we count wins, never misses. No promise times.
    ==================================================================== */
+
+// The Google Sheet's web address (Apps Script "Web app" URL). Empty = don't send anywhere.
+const SHEET_URL = "";
+// Send one small message to the sheet. "no-cors" + plain text is what Apps Script accepts
+// from a web page; we can't read the answer, so we don't wait for it.
+function toSheet(msg) {
+  if (!SHEET_URL) return;
+  fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(msg) }).catch(() => {});
+}
+const goalForSheet = n => ({ type: "goal", id: n.i, owner: n.n, shop: n.h || "", buddy: n.b, goal: n.g, why: n.w, checkin: whenWords(n), through: endDay(n), created: today() });
 
 const $ = id => document.getElementById(id);
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -391,6 +406,7 @@ function noteHtml(n, { buddy = false, example = false } = {}) {
     <p class="goal">${esc(n.g)}</p>
     ${n.w ? `<p class="why">${esc(n.w)}</p>` : ""}
     <dl>
+      ${n.h ? `<dt>Shop</dt><dd>${esc(n.h)}</dd>` : ""}
       <dt>Buddy</dt><dd>${esc(n.b || "Your buddy")}</dd>
       <dt>Check in</dt><dd>${esc(whenWords(n))}</dd>
       ${n.r !== "once" ? `<dt>Through</dt><dd>${esc(niceDate(endDay(n)))}</dd>` : ""}
@@ -401,7 +417,7 @@ function noteHtml(n, { buddy = false, example = false } = {}) {
 /* ---------- MAKER page ---------- */
 function readForm() {
   return {
-    g: $("goal").value.trim(), w: $("why").value.trim(), n: $("name").value.trim(), b: $("buddy").value.trim(),
+    g: $("goal").value.trim(), w: $("why").value.trim(), n: $("name").value.trim(), b: $("buddy").value.trim(), h: $("shop").value.trim(),
     p: digits($("phone").value), r: document.querySelector("input[name=rhythm]:checked").value,
     d: +$("day").value, t: $("time").value || "16:00", s: $("start").value || today(), l: +$("len").value,
   };
@@ -465,6 +481,7 @@ $("form").addEventListener("submit", e => {
   $("formMsg").textContent = "";
   const n = { ...f, i: Date.now().toString(36) };
   MINE.push({ ...n, wins: [] }); saveMine(MINE); drawMine();
+  toSheet(goalForSheet(n));
   showShare(n);
   $("sharePanel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
@@ -477,11 +494,13 @@ document.addEventListener("click", e => {
   if (win) {
     const n = MINE.find(x => x.i === win.dataset.win), t = today();
     n.wins = n.wins || [];
-    if (n.wins.includes(t)) n.wins = n.wins.filter(d => d !== t); else { n.wins.push(t); toast("Nice work! ★"); }
+    // A win carries its goal along, in case the sheet missed the goal the first time (it skips repeats).
+    if (n.wins.includes(t)) { n.wins = n.wins.filter(d => d !== t); toSheet({ type: "unwin", id: n.i, day: t }); }
+    else { n.wins.push(t); toast("Nice work! ★"); toSheet({ ...goalForSheet(n), type: "win", day: t }); }
     saveMine(MINE); drawMine();
   }
   if (open) { const { wins, ...n } = MINE.find(x => x.i === open.dataset.open); showShare(n); $("sharePanel").scrollIntoView({ behavior: "smooth" }); }
-  if (del) { MINE = MINE.filter(x => x.i !== del.dataset.del); saveMine(MINE); drawMine(); }
+  if (del) { MINE = MINE.filter(x => x.i !== del.dataset.del); saveMine(MINE); drawMine(); toSheet({ type: "close", id: del.dataset.del }); }
 });
 
 /* ---------- BUDDY page ---------- */
