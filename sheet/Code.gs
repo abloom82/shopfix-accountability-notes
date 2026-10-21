@@ -97,12 +97,24 @@ function recount(id, row) {
 /* ---------- Setup (run once from the Apps Script editor) ---------- */
 function sheet(name) { return SpreadsheetApp.getActive().getSheetByName(name); }
 
+// SHOPFIX LOOK (from shopfixacademy.com): ShopFix red, near-black, white,
+// tall ANTON capitals for headlines, Open Sans for everything else.
+const SF = { red: "#ac0e1d", black: "#101010", grey: "#5c5c5c", light: "#f4f4f4", head: "Anton", body: "Open Sans" };
+
 function setup() {
   const ss = SpreadsheetApp.getActive();
   const make = (name, headers) => {
     const s = ss.getSheetByName(name) || ss.insertSheet(name);
-    s.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#17191c").setFontColor("#ffffff");
+    s.getRange(1, 1, s.getMaxRows(), s.getMaxColumns()).setFontFamily(SF.body).setFontSize(10).setFontColor(SF.black);
+    s.getRange(1, 1, 1, headers.length).setValues([headers]).setFontFamily(SF.head).setFontSize(11)
+      .setBackground(SF.red).setFontColor("#ffffff").setVerticalAlignment("middle");
+    s.setRowHeight(1, 32);
     s.setFrozenRows(1);
+    s.setTabColor(SF.black);
+    // Every other row lightly shaded, so long lists are easy to read.
+    s.getBandings().forEach(b => b.remove());
+    s.getRange(1, 1, s.getMaxRows(), headers.length).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, true, false)
+      .setHeaderRowColor(SF.red).setFirstRowColor("#ffffff").setSecondRowColor(SF.light);
     return s;
   };
   const goals = make("Goals", GOAL_HEADERS);
@@ -118,8 +130,16 @@ function setup() {
   const d = ss.getSheetByName("Dashboard") || ss.insertSheet("Dashboard", 0);
   d.clear();
   d.getCharts().forEach(c => d.removeChart(c));
-  d.getRange("A1").setValue("★ ShopFix Tribe · Accountability Notes ★").setFontSize(18).setFontWeight("bold");
-  d.getRange("A2").setValue("Updates by itself every time an owner saves a goal or logs a win.").setFontColor("#545a63");
+  d.setHiddenGridlines(true);
+  d.setTabColor(SF.red);
+  d.getRange(1, 1, d.getMaxRows(), d.getMaxColumns()).setFontFamily(SF.body).setFontColor(SF.black).setVerticalAlignment("middle");
+  // Black band across the top with the title in big ShopFix capitals, then a thin red line under it.
+  d.getRange("A1:G1").setBackground(SF.black);
+  d.getRange("A1").setValue("SHOP FIX TRIBE  ·  ACCOUNTABILITY NOTES").setFontFamily(SF.head).setFontSize(24).setFontColor("#ffffff");
+  d.setRowHeight(1, 58);
+  d.getRange("A2:G2").setBackground(SF.red);
+  d.setRowHeight(2, 6);
+  d.getRange("A3").setValue("FIX THE OWNER. FIX THE SHOP.  Updates by itself every time an owner saves a goal or logs a win.").setFontSize(9).setFontColor(SF.grey);
 
   const tiles = [
     ["Active goals", '=COUNTIF(Goals!L2:L,"Active")'],
@@ -129,21 +149,30 @@ function setup() {
     ["Wins all time", "=COUNTA(Wins!A2:A)"],
     ["Goals set this month", "=COUNTIF(Goals!B2:B,\">=\"&EOMONTH(TODAY(),-1)+1)"],
   ];
-  d.getRange(4, 1, 1, tiles.length).setValues([tiles.map(t => t[0])]).setFontColor("#545a63").setFontSize(9);
-  d.getRange(5, 1, 1, tiles.length).setFormulas([tiles.map(t => t[1])]).setFontSize(26).setFontWeight("bold").setFontColor("#e01fd6");
+  d.getRange(5, 1, 1, tiles.length).setValues([tiles.map(t => t[0].toUpperCase())]).setFontColor(SF.grey).setFontSize(8).setFontWeight("bold");
+  d.getRange(6, 1, 1, tiles.length).setFormulas([tiles.map(t => t[1])]).setNumberFormat("0").setFontFamily(SF.head).setFontSize(34).setFontColor(SF.red)
+    .setHorizontalAlignment("left");
+  d.setRowHeight(6, 56);
+  d.getRange(5, 1, 2, tiles.length).setBackground(SF.light).setBorder(true, true, true, true, true, false, "#ffffff", SpreadsheetApp.BorderStyle.SOLID_THICK);
 
-  d.getRange("A8").setValue("Most wins this month").setFontWeight("bold");
+  // Section headings: ShopFix capitals with a red line under them.
+  const heading = (cell, text, width) => d.getRange(cell).setValue(text).setFontFamily(SF.head).setFontSize(14).setFontColor(SF.black)
+    .offset(0, 0, 1, width).setBorder(null, null, true, null, null, null, SF.red, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  heading("A8", "MOST WINS THIS MONTH", 3);
+  heading("E8", "NEWEST WINS", 3);
+  heading("A22", "WINS PER DAY · LAST 30 DAYS", 2);
   d.getRange("A9").setFormula("=IFERROR(QUERY(Wins!A2:D,\"select C, D, count(A) where A >= date '\"&TEXT(EOMONTH(TODAY(),-1)+1,\"yyyy-mm-dd\")&\"' group by C, D order by count(A) desc limit 10 label C 'Owner', D 'Shop', count(A) 'Wins'\",0),\"No wins yet this month\")");
 
-  d.getRange("E8").setValue("Newest wins").setFontWeight("bold");
   d.getRange("E9").setFormula("=IFERROR(QUERY(Wins!A2:E,\"select A, C, E where A is not null order by A desc limit 10 label A 'Day', C 'Owner', E 'Goal'\",0),\"No wins yet\")");
-  d.getRange("E:E").setNumberFormat("ddd mmm d");
+  d.getRange("E10:E19").setNumberFormat("ddd mmm d");   // only the win days, not the big number above
 
-  d.getRange("A22").setValue("Wins per day, last 30 days").setFontWeight("bold");
+  d.getRange("A9:C9").setFontWeight("bold").setFontColor(SF.red);
+  d.getRange("E9:G9").setFontWeight("bold").setFontColor(SF.red);
   d.getRange("A23").setFormula("=ARRAYFORMULA({\"Day\",\"Wins\";TODAY()-29+SEQUENCE(30,1,0),COUNTIF(Wins!A2:A,TODAY()-29+SEQUENCE(30,1,0))})");
   d.getRange("A24:A53").setNumberFormat("mmm d");
   const chart = d.newChart().asColumnChart().addRange(d.getRange("A23:B53"))
-    .setOption("legend", { position: "none" }).setOption("colors", ["#8fd3ff"]).setOption("title", "Wins per day")
+    .setOption("legend", { position: "none" }).setOption("colors", [SF.red]).setOption("title", "")
+    .setOption("fontName", SF.body).setOption("backgroundColor", "#ffffff")
     .setPosition(22, 4, 0, 0).build();
   d.insertChart(chart);
   d.setColumnWidths(1, 6, 150);

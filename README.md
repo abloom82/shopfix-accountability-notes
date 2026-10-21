@@ -157,7 +157,14 @@ Sort, filter, or make your own tabs and charts as you like. Just don't
 rename the **Goals** or **Wins** tabs or move their columns, because
 new rows are written into them.
 
-## Setting up the spreadsheet (Ashley, one time, about 10 minutes)
+**The live spreadsheet (set up 2026-10-21):**
+https://docs.google.com/spreadsheets/d/1_sbtv4yOucFpdMylzKJyh-UQQSoQQaPbsW5oH4lzb90/edit
+It's owned by Ashleyjo.Bloom@gmail.com and shared as Editor with
+samantha.wright@shopfixacademy.com and jazmin.sanders@shopfixacademy.com.
+The script project is "Accountability Notes Sheet" (Extensions → Apps
+Script), deployed as a web app (Version 1).
+
+## Setting up the spreadsheet (already done; here in case it's ever rebuilt)
 
 1. Go to **sheets.google.com** and click **Blank spreadsheet**. Name it
    **ShopFix Tribe · Accountability Notes**.
@@ -207,3 +214,7 @@ blue glow for your buddy's.
   goal and win is sent to a Google Sheet (`sheet/Code.gs`) with a
   Dashboard tab. Adds a "Your shop" box. The page tells owners their
   goals are shared, and phone numbers are never sent.
+- **v2.1 (2026-10-21):** spreadsheet now in the ShopFix look (red,
+  black, Anton headlines, Open Sans). The sheet is live and connected
+  (`SHEET_URL`) and shared with Sam and Jazmin. A test goal and win
+  showed up on the Dashboard, then were deleted.
