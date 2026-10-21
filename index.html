@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Accountability Notes</title>
+<meta name="description" content="Pick a goal, share it with a buddy, and let them remind you. For the ShopFix Tribe.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: one sheet. Left = make the note, right = the sticky note itself.
+   On a phone they stack. The buddy's page shows only the note + their tools. */
+:root {
+  color-scheme: light;
+  --paper: #fbfbfa;        /* page */
+  --card: #ffffff;         /* the sticky note */
+  --ink: #17191c;          /* text, main button */
+  --ink-2: #545a63;        /* softer text */
+  --hair: #dfe2e6;         /* thin lines */
+  --magenta: #e01fd6;      /* YOUR note: the magenta star + pulse (same as the shop board) */
+  --magenta-glow: rgb(224 31 214 / .45);
+  --baby-blue: #8fd3ff;    /* your BUDDY's note: backlit baby blue (same as the shop board) */
+  --blue-ink: #1b6fa3;
+  --green: #1f8a4c;        /* check-ins */
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper); color: var(--ink); font: 17px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 1080px; margin: 0 auto; }
+
+/* Top: the name, small and spaced out like a shop ticket */
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding-block: 22px 14px; border-bottom: 1px solid var(--hair); margin-bottom: 32px; }
+.brand { font: 800 1.15rem/1 var(--display); font-stretch: 75%; letter-spacing: .06em; text-transform: uppercase; }
+.brand .star, .star { color: var(--magenta); text-shadow: 0 0 8px var(--magenta-glow); font-style: normal; }
+.eyebrow { font: 500 .72rem/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+
+h1 { font: 700 clamp(2rem, 5vw, 3.1rem)/1.04 var(--display); font-stretch: 82%; letter-spacing: -.01em; margin: 6px 0 10px; text-wrap: balance; }
+h2 { font: 700 1.35rem/1.15 var(--display); font-stretch: 85%; margin: 0 0 6px; text-wrap: balance; }
+.lead { color: var(--ink-2); max-width: 34em; margin: 0 0 28px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 48px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); gap: 32px; } }
+
+/* The form: lines, not boxes */
+.field { display: grid; gap: 4px; padding-block: 12px; border-bottom: 1px solid var(--hair); }
+.field label, .field .label { font: 500 .72rem/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.field input, .field select, .field textarea {
+  font: 600 1.05rem/1.4 var(--body); color: var(--ink); background: transparent; border: 0; padding: 4px 0; width: 100%; min-width: 0;
+}
+.field textarea { resize: vertical; min-height: 2.6em; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; }
+.field:focus-within { border-bottom-color: var(--ink); }
+.field .hint { font-size: .85rem; color: var(--ink-2); }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); column-gap: 24px; }
+
+/* Rhythm picker: plain words you tap */
+.choices { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-top: 4px; }
+.choices label { font: 600 1rem/1.4 var(--body); letter-spacing: 0; text-transform: none; color: var(--ink-2); cursor: pointer; display: flex; gap: 6px; align-items: center; }
+.choices input { accent-color: var(--magenta); width: 1.05em; height: 1.05em; margin: 0; }
+.choices label:has(input:checked) { color: var(--ink); }
+
+/* Buttons: near-square corners. Graphite = the main thing to do. White outline = the rest. */
+.btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.btn { font: 600 .95rem/1 var(--body); padding: 13px 18px; border-radius: 3px; border: 1px solid var(--ink);
+  background: var(--card); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+.btn.main { background: var(--ink); color: #fff; }
+.btn:hover { box-shadow: 0 2px 0 var(--ink); }
+.btn:focus-visible, .linkish:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }
+.linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* THE STICKY NOTE. Yours pulses magenta, your buddy's glows baby blue,
+   just like Sticky Notes on the shop's front counter board. */
+.note { position: relative; background: var(--card); border: 1px solid rgb(224 31 214 / .55); border-radius: 4px;
+  padding: 26px 26px 22px; animation: pulse 3s ease-in-out infinite; }
+.note.buddy { border-color: rgb(143 211 255 / .9); background: color-mix(in srgb, var(--baby-blue) 9%, var(--card));
+  box-shadow: 0 0 26px 6px rgb(143 211 255 / .5); animation: none; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 10px 1px rgb(224 31 214 / .18); } 50% { box-shadow: 0 0 26px 6px var(--magenta-glow); } }
+@media (prefers-reduced-motion: reduce) { .note { animation: none; box-shadow: 0 0 18px 3px var(--magenta-glow); } }
+.note .tag { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 14px; }
+.note .goal { font: 700 clamp(1.5rem, 3.4vw, 2rem)/1.15 var(--display); font-stretch: 85%; margin: 0 0 10px; text-wrap: balance; overflow-wrap: anywhere; }
+.note .why { color: var(--ink-2); margin: 0 0 16px; overflow-wrap: anywhere; }
+.note dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; padding-top: 14px; border-top: 1px dashed var(--hair); }
+.note dt { font: 500 .7rem/1.6 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+.note dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.note.example .goal, .note.example .why { color: #9aa0a8; }
+.ex-flag { font: 500 .68rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--hair); padding: 4px 6px; border-radius: 2px; }
+
+/* Panels under the note (share, reminders, nudges) */
+.panel { margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--hair); }
+.panel p { margin: 0 0 6px; max-width: 36em; }
+.muted { color: var(--ink-2); }
+.small { font-size: .88rem; }
+.linkbox { margin-top: 14px; font: 400 .8rem/1.45 var(--mono); color: var(--ink-2); background: var(--card); border: 1px solid var(--hair);
+  padding: 10px 12px; border-radius: 3px; overflow-wrap: anywhere; user-select: all; }
+.msg { margin-top: 12px; background: var(--card); border: 1px solid var(--hair); border-left: 3px solid var(--baby-blue); padding: 12px 14px; border-radius: 3px; }
+.nudges { display: grid; gap: 8px; margin-top: 12px; }
+.nudges label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 10px 12px; border: 1px solid var(--hair); border-radius: 3px; background: var(--card); }
+.nudges label:has(input:checked) { border-color: var(--baby-blue); box-shadow: 0 0 0 1px var(--baby-blue); }
+.nudges input { accent-color: var(--blue-ink); margin-top: .3em; }
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: #fff;
+  padding: 10px 16px; border-radius: 3px; font-weight: 600; font-size: .92rem; z-index: 5; }
+
+/* MY NOTES: the ones you've made on this phone/computer */
+.mine { margin-top: 56px; }
+.mine-list { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.mine-list li { background: var(--card); border: 1px solid rgb(224 31 214 / .45); border-radius: 4px; padding: 16px; display: grid; gap: 10px; align-content: start; }
+.mine-list li.done { border-color: var(--hair); }
+.mine-list .g { font: 700 1.15rem/1.2 var(--display); font-stretch: 88%; overflow-wrap: anywhere; }
+.mine-list .meta { font-size: .88rem; color: var(--ink-2); }
+.wins { font: 500 .78rem/1.3 var(--mono); letter-spacing: .06em; color: var(--green); }
+.mine-list .btns { margin-top: 0; gap: 8px; }
+.mine-list .btn { padding: 9px 12px; font-size: .85rem; }
+.empty { color: var(--ink-2); border: 1px dashed var(--hair); padding: 18px; border-radius: 4px; margin-top: 14px; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--hair); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><i class="star" aria-hidden="true">★</i> Accountability Notes <i class="star" aria-hidden="true">★</i></div>
+    <div class="eyebrow">ShopFix Tribe</div>
+  </header>
+
+  <!-- ===================== MAKER: you pick a goal ===================== -->
+  <main id="maker">
+    <div class="grid">
+      <section>
+        <div class="eyebrow">Step 1 · Your goal</div>
+        <h1>Pick one goal. Pick one buddy.</h1>
+        <p class="lead">Write it down, send it to someone in the tribe, and they'll get reminders to check in on you. You keep score of the wins.</p>
+
+        <form id="form" autocomplete="off">
+          <div class="field"><label for="goal">The goal</label>
+            <textarea id="goal" maxlength="160" rows="2" placeholder="Call 5 past customers every Tuesday"></textarea></div>
+          <div class="field"><label for="why">Why it matters (optional)</label>
+            <input id="why" maxlength="160" placeholder="More repeat work, fewer slow weeks"></div>
+          <div class="row">
+            <div class="field"><label for="name">Your first name</label><input id="name" maxlength="40" placeholder="Ashley"></div>
+            <div class="field"><label for="buddy">Your buddy</label><input id="buddy" maxlength="40" placeholder="Jen"></div>
+          </div>
+          <div class="field"><label for="phone">Your cell (optional)</label>
+            <input id="phone" type="tel" maxlength="20" placeholder="555-123-4567">
+            <span class="hint">So your buddy can tap to text you. It only lives inside the link you send.</span></div>
+          <div class="field"><span class="label" id="rhythmLabel">Check in</span>
+            <div class="choices" role="radiogroup" aria-labelledby="rhythmLabel">
+              <label><input type="radio" name="rhythm" value="daily"> Every day</label>
+              <label><input type="radio" name="rhythm" value="weekdays" checked> Weekdays</label>
+              <label><input type="radio" name="rhythm" value="weekly"> Once a week</label>
+              <label><input type="radio" name="rhythm" value="once"> Just once</label>
+            </div></div>
+          <div class="row">
+            <div class="field" id="dayField" hidden><label for="day">On</label>
+              <select id="day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2" selected>Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
+            <div class="field"><label for="time">At</label><input id="time" type="time" value="16:00"></div>
+            <div class="field"><label for="start" id="startLabel">Starting</label><input id="start" type="date"></div>
+            <div class="field" id="lenField"><label for="len">For</label>
+              <select id="len"><option value="7">1 week</option><option value="14">2 weeks</option><option value="30" selected>30 days</option><option value="90">90 days</option></select></div>
+          </div>
+          <div class="btns"><button class="btn main" type="submit">Save &amp; share with my buddy</button></div>
+          <p class="small muted" id="formMsg" role="status"></p>
+        </form>
+      </section>
+
+      <aside>
+        <div class="eyebrow" style="margin-bottom:12px">How your buddy will see it</div>
+        <div id="preview"></div>
+
+        <!-- Shows after you save: the ways to send it -->
+        <div class="panel" id="sharePanel" hidden>
+          <div class="eyebrow">Step 2 · Send it</div>
+          <h2 id="shareTitle">Send it to your buddy</h2>
+          <p class="muted">They tap the link, set their reminders, and they're in. No app or sign-up.</p>
+          <div class="btns">
+            <a class="btn main" id="shareText" href="#">Text it</a>
+            <a class="btn" id="shareEmail" href="#">Email it</a>
+            <button class="btn" type="button" id="shareCopy">Copy link</button>
+            <button class="btn" type="button" id="shareMore" hidden>Share…</button>
+          </div>
+          <div class="linkbox" id="shareLink"></div>
+
+          <div class="eyebrow" style="margin-top:28px">Want reminders too?</div>
+          <div class="btns" style="margin-top:10px">
+            <a class="btn" id="meGoogle" href="#" target="_blank" rel="noopener">Google Calendar</a>
+            <button class="btn" type="button" id="meIcs">iPhone / Outlook</button>
+          </div>
+          <div class="btns"><button class="linkish" type="button" id="newNote">+ Make another note</button></div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="mine" id="mine">
+      <div class="eyebrow">Saved on this device</div>
+      <h2>My notes</h2>
+      <div id="mineBody"></div>
+    </section>
+  </main>
+
+  <!-- ===================== BUDDY: someone shared a goal with you ===================== -->
+  <main id="buddyView" hidden>
+    <div class="grid">
+      <section>
+        <div class="eyebrow">You're the accountability buddy</div>
+        <h1 id="bTitle">Jen picked you.</h1>
+        <p class="lead" id="bLead"></p>
+        <div id="bNote"></div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Step 1 · Set your reminders</div>
+        <h2>Put the check-ins on your calendar</h2>
+        <p class="muted" id="bWhen"></p>
+        <div class="btns">
+          <a class="btn main" id="bGoogle" href="#" target="_blank" rel="noopener">Google Calendar</a>
+          <button class="btn" type="button" id="bIcs">iPhone / Outlook</button>
+        </div>
+        <p class="small muted" style="margin-top:10px">iPhone: tap the button, then tap “Add All” when your calendar opens. Each reminder pops up on your phone with a link back here.</p>
+
+        <div class="panel">
+          <div class="eyebrow">Step 2 · Push a text</div>
+          <h2 id="bTextTitle">Send a nudge</h2>
+          <p class="muted">Pick one, then tap Text. It opens your messages with it already written.</p>
+          <div class="nudges" id="nudges"></div>
+          <div class="btns">
+            <a class="btn main" id="bText" href="#">Text</a>
+            <button class="btn" type="button" id="bCopy">Copy message</button>
+          </div>
+          <p class="small muted" id="bPhone"></p>
+        </div>
+      </section>
+    </div>
+    <footer><a class="linkish" href="./">Make your own accountability note →</a></footer>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* ====================================================================
+   ACCOUNTABILITY NOTES (ShopFix Tribe), a copy of the Sticky Notes on
+   the shop's Front Counter Board, made for sharing.
+   - You write ONE goal and pick a buddy.
+   - Everything about the goal is packed INTO THE LINK (after the #).
+     No database, no accounts: whoever has the link sees the note.
+     The part after # never gets sent to the web server.
+   - Your buddy opens the link and can (1) put repeating reminders on
+     their calendar and (2) open their texts with a nudge already typed.
+   - "My notes" are saved on YOUR phone/computer only (localStorage).
+   Keep it positive: we count wins, never misses. No promise times.
+   ==================================================================== */
+
+const $ = id => document.getElementById(id);
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const ICS_DAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+const STORE = "accountabilityNotes.v1";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// What the example note says before you type anything.
+const EXAMPLE = { g: "Call 5 past customers every Tuesday", w: "More repeat work, fewer slow weeks", n: "Ashley", b: "Jen", r: "weekly", d: 2, t: "16:00", s: today(), l: 30 };
+
+/* ---------- Dates and times ---------- */
+function today() { const d = new Date(); return ymd(d); }
+function ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function parseDay(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parseDay(s); d.setDate(d.getDate() + n); return ymd(d); }
+function niceTime(t) { const [h, m] = t.split(":").map(Number); return new Date(2000, 0, 1, h, m).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); }
+function niceDate(s) { return parseDay(s).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); }
+const lenWords = l => ({ 7: "1 week", 14: "2 weeks", 30: "30 days", 90: "90 days" }[l] || `${l} days`);
+// The last day of check-ins.
+const endDay = n => n.r === "once" ? n.s : addDays(n.s, n.l - 1);
+// The first real check-in day (for "once a week", the first chosen weekday on or after the start).
+function firstDay(n) {
+  if (n.r === "weekly") { const d = parseDay(n.s); while (d.getDay() !== +n.d) d.setDate(d.getDate() + 1); return ymd(d); }
+  if (n.r === "weekdays") { const d = parseDay(n.s); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); return ymd(d); }
+  return n.s;
+}
+// "Every weekday at 4:00 PM, for 30 days" in plain English.
+function whenWords(n) {
+  const at = niceTime(n.t);
+  if (n.r === "once") return `${niceDate(n.s)} at ${at}`;
+  const how = { daily: "Every day", weekdays: "Every weekday", weekly: `Every ${DAYS[n.d]}` }[n.r];
+  return `${how} at ${at}, for ${lenWords(n.l)}`;
+}
+
+/* ---------- Packing the note into the link ---------- */
+// Short keys keep the link short: g goal, w why, n name, p phone, b buddy,
+// r rhythm, d weekday, t time, s start date, l length in days, i id.
+function pack(n) {
+  const bytes = new TextEncoder().encode(JSON.stringify(n));
+  let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function unpack(s) {
+  try {
+    const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+    const n = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+    return n && n.g ? n : null;
+  } catch { return null; }
+}
+const pageUrl = () => location.href.split("#")[0];
+const linkFor = n => `${pageUrl()}#g=${pack(n)}`;
+
+/* ---------- Calendar reminders ---------- */
+// The repeat rule calendars understand (same rule for Google and the iPhone/Outlook file).
+function rrule(n) {
+  const until = endDay(n).replace(/-/g, "") + "T235959";
+  if (n.r === "daily") return `FREQ=DAILY;UNTIL=${until}`;
+  if (n.r === "weekdays") return `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;UNTIL=${until}`;
+  if (n.r === "weekly") return `FREQ=WEEKLY;BYDAY=${ICS_DAYS[n.d]};UNTIL=${until}`;
+  return "";
+}
+// What the reminder says. who = "buddy" (the person checking in) or "me" (the goal-setter).
+function eventText(n, who) {
+  const link = linkFor(n);
+  if (who === "buddy") return {
+    title: `★ Check in with ${n.n}: ${n.g}`,
+    details: `${n.n} asked you to be their accountability buddy.\n\nGoal: ${n.g}${n.w ? `\nWhy: ${n.w}` : ""}\n\nSend a quick nudge (takes 10 seconds): ${link}`,
+  };
+  return {
+    title: `★ ${n.g}`,
+    details: `Your accountability buddy ${n.b} is checking in on this today.${n.w ? `\nWhy it matters: ${n.w}` : ""}\n\nYour note: ${link}`,
+  };
+}
+const stamp = (day, t) => day.replace(/-/g, "") + "T" + t.replace(":", "") + "00";
+function endStamp(day, t) { const [h, m] = t.split(":").map(Number); const d = parseDay(day); d.setHours(h, m + 15); return ymd(d).replace(/-/g, "") + "T" + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0") + "00"; }
+
+function googleLink(n, who) {
+  const e = eventText(n, who), day = firstDay(n);
+  const q = new URLSearchParams({ action: "TEMPLATE", text: e.title, details: e.details, dates: `${stamp(day, n.t)}/${endStamp(day, n.t)}`,
+    ctz: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Los_Angeles" });
+  if (rrule(n)) q.set("recur", "RRULE:" + rrule(n));
+  return "https://calendar.google.com/calendar/render?" + q.toString();
+}
+// A calendar file (.ics) for iPhone, Mac and Outlook, with a pop-up alert at the check-in time.
+function icsFile(n, who) {
+  const e = eventText(n, who), day = firstDay(n);
+  const fold = s => String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const lines = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ShopFix Tribe//Accountability Notes//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${n.i || Date.now()}-${who}@accountability-notes`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "")}`,
+    `DTSTART:${stamp(day, n.t)}`, `DTEND:${endStamp(day, n.t)}`,
+    rrule(n) ? `RRULE:${rrule(n)}` : "",
+    `SUMMARY:${fold(e.title)}`, `DESCRIPTION:${fold(e.details)}`, `URL:${linkFor(n)}`,
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${fold(e.title)}`, "TRIGGER:PT0M", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].filter(Boolean);
+  return lines.join("\r\n");
+}
+function saveIcs(n, who) {
+  const blob = new Blob([icsFile(n, who)], { type: "text/calendar" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${who === "buddy" ? "check-in-with-" + n.n : "my-goal"}.ics`.replace(/[^\w.-]+/g, "-").toLowerCase();
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ---------- Texts and email ---------- */
+const digits = p => String(p || "").replace(/[^\d+]/g, "");
+// "?&body=" works on both iPhone and Android.
+const smsLink = (to, body) => `sms:${digits(to)}?&body=${encodeURIComponent(body)}`;
+function nudgesFor(n) {
+  return [
+    `Hey ${n.n}! Your accountability buddy checking in ★ How's "${n.g}" going today? You've got this.`,
+    `Proud of you for going after "${n.g}". What's one win from today?`,
+    `Tribe check-in ★ "${n.g}". Tell me one thing you did on it, big or small!`,
+  ];
+}
+async function copy(text, done = "Copied") {
+  try { await navigator.clipboard.writeText(text); toast(done); }
+  catch { toast("Press and hold to copy"); }
+}
+let toastTimer;
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2200); }
+
+/* ---------- The sticky note itself ---------- */
+function noteHtml(n, { buddy = false, example = false } = {}) {
+  return `<article class="note ${buddy ? "buddy" : ""} ${example ? "example" : ""}">
+    <div class="tag"><span class="eyebrow"><i class="star" aria-hidden="true">★</i> ${esc(n.n || "You")}'s goal</span>${example ? `<span class="ex-flag">Example</span>` : ""}</div>
+    <p class="goal">${esc(n.g)}</p>
+    ${n.w ? `<p class="why">${esc(n.w)}</p>` : ""}
+    <dl>
+      <dt>Buddy</dt><dd>${esc(n.b || "Your buddy")}</dd>
+      <dt>Check in</dt><dd>${esc(whenWords(n))}</dd>
+      ${n.r !== "once" ? `<dt>Through</dt><dd>${esc(niceDate(endDay(n)))}</dd>` : ""}
+    </dl>
+  </article>`;
+}
+
+/* ---------- MAKER page ---------- */
+function readForm() {
+  return {
+    g: $("goal").value.trim(), w: $("why").value.trim(), n: $("name").value.trim(), b: $("buddy").value.trim(),
+    p: digits($("phone").value), r: document.querySelector("input[name=rhythm]:checked").value,
+    d: +$("day").value, t: $("time").value || "16:00", s: $("start").value || today(), l: +$("len").value,
+  };
+}
+function drawPreview() {
+  const f = readForm();
+  $("dayField").hidden = f.r !== "weekly";
+  $("lenField").hidden = f.r === "once";
+  $("startLabel").textContent = f.r === "once" ? "On" : "Starting";
+  // Until you type, show the example (marked "Example").
+  const blank = !f.g && !f.n && !f.b;
+  $("preview").innerHTML = noteHtml(blank ? EXAMPLE : { ...f, g: f.g || "Your goal goes here" }, { example: blank });
+}
+
+// My notes: kept on this device only.
+function loadMine() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch { return []; } }
+function saveMine(list) { try { localStorage.setItem(STORE, JSON.stringify(list)); } catch { /* private window: notes just won't stick */ } }
+let MINE = loadMine();
+let current = null;   // the note just saved (for the share panel)
+
+function showShare(n) {
+  current = n;
+  const link = linkFor(n);
+  const invite = `Hey ${n.b}! Will you be my accountability buddy? ★ My goal: "${n.g}". Tap this to set your reminders: ${link}`;
+  $("shareTitle").textContent = `Send it to ${n.b}`;
+  $("shareText").href = smsLink("", invite);
+  $("shareEmail").href = `mailto:?subject=${encodeURIComponent("Will you be my accountability buddy?")}&body=${encodeURIComponent(invite)}`;
+  $("shareLink").textContent = link;
+  $("shareMore").hidden = !navigator.share;
+  $("meGoogle").href = googleLink(n, "me");
+  $("sharePanel").hidden = false;
+  $("preview").innerHTML = noteHtml(n);
+}
+
+function drawMine() {
+  const box = $("mineBody");
+  if (!MINE.length) { box.innerHTML = `<div class="empty">No notes yet. Your first one shows up here after you save it, with a button to log each win.</div>`; return; }
+  const t = today();
+  box.innerHTML = `<ul class="mine-list">${MINE.slice().reverse().map(n => {
+    const wins = (n.wins || []).length, doneToday = (n.wins || []).includes(t), over = endDay(n) < t;
+    return `<li class="${over ? "done" : ""}">
+      <div class="g">${esc(n.g)}</div>
+      <div class="meta">Buddy: ${esc(n.b)} · ${esc(whenWords(n))}</div>
+      <div class="wins">${wins ? `★ ${wins} win${wins === 1 ? "" : "s"} logged` : "Log your first win when you do it"}${over ? " · finished" : ""}</div>
+      <div class="btns">
+        <button class="btn ${doneToday ? "" : "main"}" data-win="${esc(n.i)}">${doneToday ? "✓ Done today" : "I did it today"}</button>
+        <a class="btn" href="${esc(smsLink("", `Update for my buddy ${n.b}: I did "${n.g}" today ★ That's ${wins || 1} win${(wins || 1) === 1 ? "" : "s"}!`))}">Text ${esc(n.b)}</a>
+        <button class="btn" data-open="${esc(n.i)}">Share again</button>
+        <button class="linkish small" data-del="${esc(n.i)}">Remove</button>
+      </div></li>`;
+  }).join("")}</ul>`;
+}
+
+$("form").addEventListener("input", drawPreview);
+$("form").addEventListener("change", drawPreview);
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = readForm();
+  const missing = [!f.g && "the goal", !f.n && "your name", !f.b && "your buddy's name"].filter(Boolean);
+  if (missing.length) { $("formMsg").textContent = `Add ${missing.join(" and ")} first.`; return; }
+  $("formMsg").textContent = "";
+  const n = { ...f, i: Date.now().toString(36) };
+  MINE.push({ ...n, wins: [] }); saveMine(MINE); drawMine();
+  showShare(n);
+  $("sharePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("shareCopy").addEventListener("click", () => copy(linkFor(current), "Link copied"));
+$("shareMore").addEventListener("click", () => navigator.share?.({ title: "Be my accountability buddy?", text: `My goal: "${current.g}"`, url: linkFor(current) }).catch(() => {}));
+$("meIcs").addEventListener("click", () => saveIcs(current, "me"));
+$("newNote").addEventListener("click", () => { $("form").reset(); $("start").value = today(); $("sharePanel").hidden = true; drawPreview(); $("goal").focus(); });
+document.addEventListener("click", e => {
+  const win = e.target.closest("[data-win]"), open = e.target.closest("[data-open]"), del = e.target.closest("[data-del]");
+  if (win) {
+    const n = MINE.find(x => x.i === win.dataset.win), t = today();
+    n.wins = n.wins || [];
+    if (n.wins.includes(t)) n.wins = n.wins.filter(d => d !== t); else { n.wins.push(t); toast("Nice work! ★"); }
+    saveMine(MINE); drawMine();
+  }
+  if (open) { const { wins, ...n } = MINE.find(x => x.i === open.dataset.open); showShare(n); $("sharePanel").scrollIntoView({ behavior: "smooth" }); }
+  if (del) { MINE = MINE.filter(x => x.i !== del.dataset.del); saveMine(MINE); drawMine(); }
+});
+
+/* ---------- BUDDY page ---------- */
+function showBuddy(n) {
+  $("maker").hidden = true; $("buddyView").hidden = false;
+  document.title = `${n.n}'s goal · Accountability Notes`;
+  $("bTitle").textContent = `${n.n} picked you.`;
+  $("bLead").textContent = `${n.n} asked you to be their accountability buddy. Your job is easy: when the reminder pops up, send a quick, positive nudge.`;
+  $("bNote").innerHTML = noteHtml(n, { buddy: true });
+  $("bWhen").textContent = `${whenWords(n)}. Each reminder says what to check on.`;
+  $("bGoogle").href = googleLink(n, "buddy");
+  $("bIcs").onclick = () => saveIcs(n, "buddy");
+  $("bTextTitle").textContent = `Send ${n.n} a nudge`;
+  const list = nudgesFor(n);
+  $("nudges").innerHTML = list.map((m, k) => `<label><input type="radio" name="nudge" value="${k}"${k ? "" : " checked"}><span>${esc(m)}</span></label>`).join("");
+  const pick = () => list[+document.querySelector("input[name=nudge]:checked").value];
+  const setText = () => { $("bText").href = smsLink(n.p, pick()); };
+  $("nudges").addEventListener("change", setText); setText();
+  $("bCopy").onclick = () => copy(pick(), "Message copied");
+  $("bPhone").textContent = n.p ? `${n.n}'s cell: ${n.p}` : `Pick ${n.n} in your contacts when your messages open.`;
+}
+
+/* ---------- Start ---------- */
+const shared = location.hash.startsWith("#g=") ? unpack(location.hash.slice(3)) : null;
+if (shared) showBuddy(shared);
+else { $("start").value = today(); drawPreview(); drawMine(); }
+window.addEventListener("hashchange", () => location.reload());
+</script>
+</body>
+</html>
