@@ -6,6 +6,8 @@ customers back, training the team, working on the numbers) get pushed
 aside by whatever is on fire today. Accountability Notes helps the
 important things happen anyway.
 
+**▶ Open it here: https://abloom82.github.io/shopfix-accountability-notes/**
+
 **Pick one goal. Pick one buddy from the tribe. Send them the link.**
 Their calendar reminds them, and they send you a quick nudge. You log
 your wins.
@@ -218,3 +220,8 @@ blue glow for your buddy's.
   black, Anton headlines, Open Sans). The sheet is live and connected
   (`SHEET_URL`) and shared with Sam and Jazmin. A test goal and win
   showed up on the Dashboard, then were deleted.
+- **v2.2 (2026-10-21):** live on GitHub Pages at
+  https://abloom82.github.io/shopfix-accountability-notes/ (repo
+  abloom82/shopfix-accountability-notes, main branch, root). Tested live:
+  a goal reached the sheet, then the test row was deleted. Every push to
+  main updates the site in about a minute.
